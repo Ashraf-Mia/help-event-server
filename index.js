@@ -90,10 +90,29 @@ app.get("/my-events/:email", async (req, res) => {
   res.send(result);
 });
 
+app.patch("/my-events/:id", verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const updatedData = req.body;
+
+  const result = await eventCollection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: updatedData },
+  );
+  res.json(result);
+});
+
+app.delete("/my-events/:id", verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const result = await eventCollection.deleteOne({
+    _id: new ObjectId(id),
+  });
+  res.send(result);
+});
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
 });
 
-// http://localhost:8000/event-types
+// http://localhost:8000/my-events/:email
 
 export default app;
