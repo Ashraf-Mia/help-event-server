@@ -1,6 +1,6 @@
 import express from "express";
 import "dotenv/config";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import cors from "cors";
 
 const app = express();
@@ -46,6 +46,7 @@ app.post("/add-event", async (req, res) => {
 });
 
 app.get("/events", async (req, res) => {
+  const { type, search } = req.query;
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Dhaka",
   }).format(new Date());
@@ -59,19 +60,27 @@ app.get("/events", async (req, res) => {
   }
 
   if (search) {
+    const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     query.$or = [
-      { title: { $regex: search, $options: "i" } },
-      { location: { $regex: search, $options: "i" } },
+      { title: { $regex: safeSearch, $options: "i" } },
+      { location: { $regex: safeSearch, $options: "i" } },
     ];
   }
-
-  //for only type
-  app.get("/event-types", async (req, res) => {
-    const result = await eventCollection.distinct("type");
-    res.send(result);
-  });
-
   const result = await eventCollection.find(query).sort({ date: 1 }).toArray();
+  res.send(result);
+});
+
+//for only type
+app.get("/event-types", async (req, res) => {
+  const result = await eventCollection.distinct("type");
+  res.send(result);
+});
+
+app.get("/events/:id", async (req, res) => {
+  const { id } = req.params;
+  const result = await eventCollection.findOne({
+    _id: new ObjectId(id),
+  });
   res.send(result);
 });
 
