@@ -24,6 +24,16 @@ const mongoClient = await connectToMongoDB();
 const db = mongoClient.db("help-events");
 const eventCollection = db.collection("events");
 
+const verifyApi = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader !== "user logged in") {
+    return res.status(401).send({ msg: "Unauthrized!" });
+  }
+
+  next();
+};
+
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
@@ -36,7 +46,32 @@ app.post("/add-event", async (req, res) => {
 });
 
 app.get("/events", async (req, res) => {
-  const result = await eventCollection.find().toArray();
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Dhaka",
+  }).format(new Date());
+
+  const query = {
+    date: { $gte: today },
+  };
+
+  if (type && type !== "ALL") {
+    query.type = type;
+  }
+
+  if (search) {
+    query.$or = [
+      { title: { $regex: search, $options: "i" } },
+      { location: { $regex: search, $options: "i" } },
+    ];
+  }
+
+  //for only type
+  app.get("/event-types", async (req, res) => {
+    const result = await eventCollection.distinct("type");
+    res.send(result);
+  });
+
+  const result = await eventCollection.find(query).sort({ date: 1 }).toArray();
   res.send(result);
 });
 
@@ -44,6 +79,6 @@ app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
 });
 
-// http://localhost:8000/events
+// http://localhost:8000/event-types
 
 export default app;
