@@ -90,7 +90,7 @@ app.get("/my-events/:email", async (req, res) => {
   res.send(result);
 });
 
-app.patch("/my-events/:id", verifyToken, async (req, res) => {
+app.patch("/my-events/:id", async (req, res) => {
   const { id } = req.params;
   const updatedData = req.body;
 
@@ -101,7 +101,7 @@ app.patch("/my-events/:id", verifyToken, async (req, res) => {
   res.json(result);
 });
 
-app.delete("/my-events/:id", verifyToken, async (req, res) => {
+app.delete("/my-events/:id", async (req, res) => {
   const { id } = req.params;
   const result = await eventCollection.deleteOne({
     _id: new ObjectId(id),
