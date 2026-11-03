@@ -52,6 +52,23 @@ app.post("/add-event", async (req, res) => {
   res.send(result);
 });
 
+// for home page
+app.get("/sixEvents", async (req, res) => {
+  const today = getToday();
+
+  const query = {
+    date: { $gte: today },
+  };
+
+  const result = await eventCollection
+    .find(query)
+    .sort({ date: 1 })
+    .limit(6)
+    .toArray();
+  res.send(result);
+});
+
+// for upcoming page
 app.get("/events", async (req, res) => {
   const { type, search } = req.query;
   const today = getToday();
