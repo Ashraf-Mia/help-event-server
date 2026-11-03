@@ -175,10 +175,27 @@ app.get("/is-joined", async (req, res) => {
   res.send({ isJoined: !!existingJoin });
 });
 
+// for manage my join
+app.get("/my-joined/:email", async (req, res) => {
+  const { email } = req.params;
+  const today = getToday();
+
+  const query = {
+    userEmail: email,
+    date: { $gte: today },
+  };
+
+  const result = await joinEventCollection
+    .find(query)
+    .sort({ date: 1 })
+    .toArray();
+  res.send(result);
+});
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
 });
 
-// http://localhost:8000/my-events/:email
+// http://localhost:8000/my-joined/:email
 
 export default app;
