@@ -2,6 +2,7 @@ import express from "express";
 import "dotenv/config";
 import { MongoClient, ObjectId } from "mongodb";
 import cors from "cors";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 const app = express();
 app.use(cors());
@@ -31,21 +32,37 @@ const getToday = () => {
   }).format(new Date());
 };
 
-const verifyApi = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-
-  if (authHeader !== "user logged in") {
-    return res.status(401).send({ msg: "Unauthrized!" });
+  if (!authHeader) {
+    return res.status(401).send({ mas: "unAuthorized!" });
   }
 
-  next();
+  const token = authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).send({ msg: "unAuthorized!" });
+  }
+
+  const JWKS = createRemoteJWKSet(
+    new URL(`${process.env.CLIENT_URI}api/auth/jwks`),
+  );
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+
+    next();
+  } catch (error) {
+    return res.status(500).send({ msg: "Server Error!" });
+  }
 };
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-app.post("/add-event", async (req, res) => {
+// for create event
+app.post("/add-event", verifyToken, async (req, res) => {
   const data = req.body;
   const result = await eventCollection.insertOne(data);
   console.log(result);
@@ -117,7 +134,7 @@ app.get("/events/:id", async (req, res) => {
 });
 
 // for manage my event
-app.get("/my-events/:email", async (req, res) => {
+app.get("/my-events/:email", verifyToken, async (req, res) => {
   const { email } = req.params;
   const today = getToday();
 
@@ -130,7 +147,7 @@ app.get("/my-events/:email", async (req, res) => {
   res.send(result);
 });
 
-app.patch("/my-events/:id", async (req, res) => {
+app.patch("/my-events/:id", verifyToken, async (req, res) => {
   const { id } = req.params;
   const updatedData = req.body;
 
@@ -141,7 +158,7 @@ app.patch("/my-events/:id", async (req, res) => {
   res.json(result);
 });
 
-app.delete("/my-events/:id", async (req, res) => {
+app.delete("/my-events/:id", verifyToken, async (req, res) => {
   const { id } = req.params;
   const result = await eventCollection.deleteOne({
     _id: new ObjectId(id),
@@ -202,7 +219,7 @@ app.get("/is-joined", async (req, res) => {
 });
 
 // for manage my join
-app.get("/my-joined/:email", async (req, res) => {
+app.get("/my-joined/:email", verifyToken, async (req, res) => {
   const { email } = req.params;
   const today = getToday();
 
@@ -222,6 +239,6 @@ app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
 });
 
-// http://localhost:8000/my-joined/:email
+// http://localhost:8000/sixEvents
 
 export default app;
