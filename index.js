@@ -84,9 +84,18 @@ app.get("/event-types", async (req, res) => {
 //for details event
 app.get("/events/:id", async (req, res) => {
   const { id } = req.params;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(404).send({ message: "Event not found" });
+  }
   const result = await eventCollection.findOne({
     _id: new ObjectId(id),
   });
+
+  if (!result) {
+    return res.status(404).send({ message: "Event not found" });
+  }
+
   res.send(result);
 });
 
