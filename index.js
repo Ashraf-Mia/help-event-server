@@ -126,11 +126,22 @@ app.delete("/my-events/:id", async (req, res) => {
 // for join event
 app.post("/join-event", async (req, res) => {
   const data = req.body;
-  const { eventId, userEmail, date } = data;
+
+  const eventId = data._id;
+  const creatorEmail = data.email;
+  const userEmail = data.userEmail;
+
+  if (userEmail === creatorEmail) {
+    {
+      return res
+        .status(400)
+        .send({ msg: "You cannot join own created event!" });
+    }
+  }
 
   const today = getToday();
 
-  if (date < today) {
+  if (data.date < today) {
     return res.status(400).send({ msg: "You cannot join past events!" });
   }
 
@@ -144,10 +155,13 @@ app.post("/join-event", async (req, res) => {
       _id: allReadyJoined._id,
     });
     return res.json(result);
-  } else {
-    const result = await joinEventCollection.insertOne(data);
-    return res.json(result);
   }
+
+  const { _id, ...rest } = data;
+  const joinData = { ...rest, eventId: _id };
+
+  const result = await joinEventCollection.insertOne(joinData);
+  return res.json(result);
 });
 
 app.get("/is-joined", async (req, res) => {
