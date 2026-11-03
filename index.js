@@ -23,6 +23,13 @@ export async function connectToMongoDB() {
 const mongoClient = await connectToMongoDB();
 const db = mongoClient.db("help-events");
 const eventCollection = db.collection("events");
+const joinEventCollection = db.collection("joinEvent");
+
+const getToday = () => {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Dhaka",
+  }).format(new Date());
+};
 
 const verifyApi = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -47,9 +54,7 @@ app.post("/add-event", async (req, res) => {
 
 app.get("/events", async (req, res) => {
   const { type, search } = req.query;
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Dhaka",
-  }).format(new Date());
+  const today = getToday();
 
   const query = {
     date: { $gte: today },
@@ -76,6 +81,7 @@ app.get("/event-types", async (req, res) => {
   res.send(result);
 });
 
+//for details event
 app.get("/events/:id", async (req, res) => {
   const { id } = req.params;
   const result = await eventCollection.findOne({
@@ -84,9 +90,17 @@ app.get("/events/:id", async (req, res) => {
   res.send(result);
 });
 
+// for manage my event
 app.get("/my-events/:email", async (req, res) => {
   const { email } = req.params;
-  const result = await eventCollection.find({ email: email }).toArray();
+  const today = getToday();
+
+  const query = {
+    email: email,
+    date: { $gte: today },
+  };
+
+  const result = await eventCollection.find(query).sort({ date: 1 }).toArray();
   res.send(result);
 });
 
@@ -107,6 +121,44 @@ app.delete("/my-events/:id", async (req, res) => {
     _id: new ObjectId(id),
   });
   res.send(result);
+});
+
+// for join event
+app.post("/join-event", async (req, res) => {
+  const data = req.body;
+  const { eventId, userEmail, date } = data;
+
+  const today = getToday();
+
+  if (date < today) {
+    return res.status(400).send({ msg: "You cannot join past events!" });
+  }
+
+  const allReadyJoined = await joinEventCollection.findOne({
+    eventId: eventId,
+    userEmail: userEmail,
+  });
+
+  if (allReadyJoined) {
+    const result = await joinEventCollection.deleteOne({
+      _id: allReadyJoined._id,
+    });
+    return res.json(result);
+  } else {
+    const result = await joinEventCollection.insertOne(data);
+    return res.json(result);
+  }
+});
+
+app.get("/is-joined", async (req, res) => {
+  const { eventId, userEmail } = req.query;
+
+  const existingJoin = await joinEventCollection.findOne({
+    eventId: eventId,
+    userEmail: userEmail,
+  });
+
+  res.send({ isJoined: !!existingJoin });
 });
 
 app.listen(PORT, () => {
