@@ -50,8 +50,11 @@ const verifyToken = async (req, res, next) => {
     new URL(`${process.env.CLIENT_URI}api/auth/jwks`),
   );
 
+  console.log(JWKS, "jwks");
+
   try {
     const { payload } = await jwtVerify(token, JWKS);
+    console.log("success");
 
     next();
   } catch (error) {
@@ -136,7 +139,7 @@ app.get("/events/:id", async (req, res) => {
 });
 
 // for manage my event
-app.get("/my-events/:email", async (req, res) => {
+app.get("/my-events/:email", verifyToken, async (req, res) => {
   const { email } = req.params;
   const today = getToday();
 
