@@ -34,11 +34,13 @@ const getToday = () => {
 
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
+  console.log(authHeader);
   if (!authHeader) {
     return res.status(401).send({ mas: "unAuthorized!" });
   }
 
   const token = authHeader.split(" ")[1];
+  console.log(token);
 
   if (!token) {
     return res.status(401).send({ msg: "unAuthorized!" });
