@@ -136,7 +136,7 @@ app.get("/events/:id", async (req, res) => {
 });
 
 // for manage my event
-app.get("/my-events/:email", verifyToken, async (req, res) => {
+app.get("/my-events/:email", async (req, res) => {
   const { email } = req.params;
   const today = getToday();
 
